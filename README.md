@@ -111,8 +111,7 @@ Radiance uses **code splicing** to intercept function calls:
 ### Prerequisites
 
 ```bash
-# Windows with Visual Studio 2022 or newer
-# Requires C++20 Standard Library modules support
+# Windows with Clang or GCC (MinGW) and CMake
 ```
 
 ### Build Steps
