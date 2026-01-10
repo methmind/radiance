@@ -132,28 +132,6 @@ cmake .. -DCMAKE_CXX_STANDARD=20
 cmake --build . --config Release
 ```
 
-## Usage Example
-
-Basic usage pattern (conceptual - actual API may differ):
-
-```cpp
-#include <radiance/cpu/cpu_affinity_scope.hpp>
-#include <radiance/hook/hook_dispatcher.hpp>
-
-// Set execution to CPU core 0
-C_CpuAffinityScope affinity_scope(0);
-
-// Create hook handler
-C_SplicingHook hook(target_function, hook_handler);
-
-// Install the hook
-hook.Install();
-
-// ... hook is now active ...
-
-// Hook is automatically removed on destruction
-```
-
 ## Limitations and Caveats
 
 - ⚠️ **x86-64 Windows Only**: Limited to Windows systems with x86-64 architecture
