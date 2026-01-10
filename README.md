@@ -162,6 +162,7 @@ hook.Install();
 - ⚠️ **Performance Trade-offs**: Hooking adds execution overhead
 - ⚠️ **Debugging Complexity**: Difficult to debug hooked code
 - ⚠️ **Security Considerations**: Hooks can be detected/bypassed by security software
+- - ⚠️ **Maximum Prologue Bytes**: Maximum 16 bytes of original function prologue can be copied due to implementation constraints
 
 ## Known Issues
 
@@ -191,7 +192,7 @@ This is an experimental proof-of-concept project. Contributions, bug reports, an
 
 ## License
 
-MIT License - Copyright (c) 2026 Alexey Smaev
+MIT License - Copyright (c) 2026 
 
 See [LICENSE](LICENSE) file for details.
 
@@ -213,9 +214,10 @@ The author is not liable for any damage or misuse of this software.
 - Code Hooking Techniques: Academic papers and security research
 - C++20 Modules: ISO/IEC 14882:2020 standard
 
+- MinHook: Modern library for x86-64 function hooking
 ## Author
 
-**Alexey Smaev** - [methmind](https://github.com/methmind)
+**** - [methmind](https://github.com/methmind)
 
 ## Acknowledgments
 
