@@ -12,6 +12,7 @@ Radiance is an experimental C++20 library for implementing runtime code hooks wi
 - **Custom Memory Management**: Efficient block-based allocator with metadata support
 - **C++20 Modules**: Modern modular architecture using C++20 module system
 - **x86-64 Assembly Integration**: Direct manipulation of machine code and CPU registers
+- - **Direct API Calls from Hooks**: No need to store original function pointers - call any API directly from hook handlers
 
 ## Project Status
 
