@@ -142,24 +142,6 @@ cmake --build . --config Release
 - ⚠️ **Security Considerations**: Hooks can be detected/bypassed by security software
 - - ⚠️ **Maximum Prologue Bytes**: Maximum 16 bytes of original function prologue can be copied due to implementation constraints
 
-## Known Issues
-
-- External dependencies directory structure incomplete
-- Minimal error handling and validation
-- No recovery mechanism for failed hook installation
-- Documentation limited to code comments
-
-## Future Development
-
-- [ ] Add comprehensive unit tests
-- [ ] Implement hook chaining support
-- [ ] Add hook logging and diagnostics
-- [ ] Support for inline hooks (beyond splicing)
-- [ ] Performance profiling and optimization
-- [ ] Extended documentation and examples
-- [ ] Error handling and recovery
-- [ ] Multi-platform support (Linux, macOS)
-
 ## Contributing
 
 This is an experimental proof-of-concept project. Contributions, bug reports, and discussions are welcome, but please note:
