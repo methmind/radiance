@@ -46,7 +46,7 @@ namespace radiance::hook
 {
     static thread_local uint32_t RECURSION_DEPTH = 0;
 
-    extern "C" bool __fastcall CheckRecursionAndEnter()
+    extern "C" bool __attribute__((used)) __attribute__((noinline)) __fastcall CheckRecursionAndEnter()
     {
         if (RECURSION_DEPTH > 0) {
             return true;
@@ -56,12 +56,12 @@ namespace radiance::hook
         return false;
     }
 
-    extern "C" void __fastcall LeaveHookContext()
+    extern "C" void __attribute__((used)) __attribute__((noinline)) __fastcall LeaveHookContext()
     {
         RECURSION_DEPTH--;
     }
 
-    extern "C" void* __fastcall GetHookTarget(void* hookPtr)
+    extern "C" void* __attribute__((used)) __attribute__((noinline)) __fastcall GetHookTarget(void* hookPtr)
     {
         return static_cast<C_BaseHook<void>*>(hookPtr)->target();
     }
