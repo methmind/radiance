@@ -8,10 +8,20 @@ import radiance.memory.stl;
 import radiance.hook.impl.splicing;
 import radiance.hook.dispatcher;
 
-WINBOOL hkBeep(DWORD dwFreq, DWORD dwDuration)
+void test_stack_args(int a, int b, int c, int d, int e, int f)
 {
-    MessageBoxA(nullptr, "Beep Hooked!", "Info", MB_OK);
-    return Beep(dwFreq, dwDuration);
+    char buf[128];
+    __builtin_snprintf(buf, sizeof(buf), "Args: %d %d %d %d %d %d", a, b, c, d, e, f);
+    MessageBoxA(nullptr, buf, "Original Function", MB_OK);
+}
+
+void hk_test_stack_args(int a, int b, int c, int d, int e, int f)
+{
+    char buf[128];
+    __builtin_snprintf(buf, sizeof(buf), "HOOKED Args: %d %d %d %d %d %d", a, b, c, d, e, f);
+    MessageBoxA(nullptr, buf, "Hooked Function", MB_OK);
+    
+    test_stack_args(a, b, c, d, e, f);
 }
 
 int main()
@@ -21,12 +31,13 @@ int main()
     );
 
     auto hook = std::make_shared<radiance::hook::impl::splicing::C_SplicingHook<radiance::memory::stl::C_StlAllocator<uint8_t>>>(allocator);
-    if (!hook->install((void*)GetProcAddress(GetModuleHandleA("kernelbase.dll"), "Beep"),
-        reinterpret_cast<void*>(hkBeep), reinterpret_cast<void*>(radiance::hook::DispatcherEntry))) {
+    if (!hook->install((void*)test_stack_args,
+        reinterpret_cast<void*>(hk_test_stack_args), reinterpret_cast<void*>(radiance::hook::DispatcherEntry))) {
         assert("Unable to set hook!");
         return -1;
     }
 
-    Beep(13, 37);
+    test_stack_args(11, 22, 33, 44, 55, 66);
+
     return 0;
 }

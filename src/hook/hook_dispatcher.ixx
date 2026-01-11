@@ -3,19 +3,18 @@
 //
 module;
 #include <cstdint>
-#include <windows.h>
 
 export module radiance.hook.dispatcher;
 
 import radiance.hook.base;
 
 #define SAVE_GP_REGISTERS() \
-    /* --- Argument Registers --- */ \
+    /* --- Аргументы (volatile) --- */ \
     "push rcx \n" \
     "push rdx \n" \
     "push r8  \n" \
     "push r9  \n" \
-    /* --- Non-Volatile Registers --- */ \
+    /* --- Non-volatile --- */ \
     "push rbx \n" \
     "push rbp \n" \
     "push rdi \n" \
@@ -27,7 +26,7 @@ import radiance.hook.base;
     "push r15 \n"
 
 #define RESTORE_GP_REGISTERS() \
-    /* --- Non-Volatile Registers --- */ \
+    /* --- Восстанавливаем Non-volatile --- */ \
     "pop r15 \n" \
     "pop r14 \n" \
     "pop r13 \n" \
@@ -37,7 +36,7 @@ import radiance.hook.base;
     "pop rdi \n" \
     "pop rbp \n" \
     "pop rbx \n" \
-    /* --- Argument Registers --- */ \
+    /* --- Восстанавливаем аргументы --- */ \
     "pop r9  \n" \
     "pop r8  \n" \
     "pop rdx \n" \
@@ -68,18 +67,16 @@ namespace radiance::hook
     }
 
     //DispatcherEntry(C_BaseHook<void>* hook == R10);
-    export bool __declspec(naked) __fastcall DispatcherEntry() noexcept
+    export bool __attribute__ ((naked)) __fastcall DispatcherEntry() noexcept
     {
         asm volatile (
             ".intel_syntax noprefix \n"
-
-            // Сохраняем R10 (this pointer), так как он не сохраняется в SAVE_GP_REGISTERS
-            // Используем стек.
+            // Сохраняем R10 (this)
             "push r10 \n"
 
             SAVE_GP_REGISTERS()
 
-            // Выравнивание и вызов CheckRecursion
+            // Выравниваем стек и чекаем рекурсию
             "sub rsp, 0x28 \n"            // Shadow space (32) + Align (8) = 40
             "call CheckRecursionAndEnter \n"
             "add rsp, 0x28 \n"
@@ -89,23 +86,19 @@ namespace radiance::hook
             "cmp al, 1 \n"
             "je ExitRecursion \n"
 
-            // --- Входим в хук (AL=0) ---
+            // --- Заходим в хук (AL=0) ---
 
-            // Подготовка к вызову GetHookTarget
-            // Нам нужно достать R10 (который мы запушили самым первым).
-            // R10 лежит на вершине стека (RSP указывает на него).
-            "pop r10 \n"                  // Восстанавливаем R10
+            // Достаем R10 (this)
+            "pop r10 \n"
 
-            // Сохраняем аргументы RCX, RDX, R8, R9, так как GetHookTarget их убьет.
+            // Сейвим аргументы
             "push r9 \n"
             "push r8 \n"
             "push rdx \n"
             "push rcx \n"
 
-            // Вызов GetHookTarget(r10)
-            "sub rsp, 0x20 \n"            // Shadow Space (32).
-                                          // Стек был ...0 (4 пуша). sub 32 -> ...0.
-                                          // call -> ...8 (Inside). OK.
+            // Зовем GetHookTarget(r10)
+            "sub rsp, 0x20 \n"            // Shadow Space (32)
             "mov rcx, r10 \n"
             "call GetHookTarget \n"
             "add rsp, 0x20 \n"
@@ -116,29 +109,57 @@ namespace radiance::hook
             "pop r8 \n"
             "pop r9 \n"
 
-            // Вызов Payload (адрес в RAX)
-            // Стек сейчас ...0 (чистый).
-            // WinAPI требует ...8 на входе (return address pushed).
-            // Значит перед call стек должен быть ...0.
-            "sub rsp, 0x20 \n"            // Shadow Space (32). ...0 -> ...0.
-            "call rax \n"                 // call -> ...8 (Inside).
-            "add rsp, 0x20 \n"
+            // Вызов Payload (адрес в RAX). Копируем стековые аргументы.
+            "mov r11, rax \n"             // Сейвим адрес Target в R11
+            
+            // Сейвим реги, которые убьет rep movsq
+            "push rdi \n"
+            "push rsi \n"
+            "push rcx \n"                 // [RSP+0x00] = RCX
+            
+            // Выделяем место под аргументы (160 байт total).
+            // 0xA8 (168) выравнивает стек по 16 байт с учетом 3 пушей выше.
+            "sub rsp, 0xA8 \n"
+            
+            // Копируем аргументы. Смещение 0x120 = Frame(0xA8) + Pushes(24) + Overhead(56) + OldFrame(40)
+            "lea rsi, [rsp + 0x120] \n"   // Source
+            "lea rdi, [rsp + 0x20] \n"    // Dest (после Shadow Space)
+            "mov rcx, 16 \n"              // 16 qwords (128 байт)
+            "rep movsq \n"
+            
+            // Восстанавливаем реги перед вызовом
+            "mov rcx, [rsp + 0xA8] \n"    // Arg1
+            "mov rsi, [rsp + 0xB0] \n"    // RSI
+            "mov rdi, [rsp + 0xB8] \n"    // RDI
+            
+            "call r11 \n"                 // Дергаем Detour
+            
+            "add rsp, 0xA8 \n"            // Чистим стек
+            
+            "pop rcx \n"
+            "pop rsi \n"
+            "pop rdi \n"
 
-            SAVE_GP_REGISTERS()
+            // Сейвим результат (RAX, RDX)
+            "push rdx \n"
+            "push rax \n"
+
+            SAVE_GP_REGISTERS() 
             "sub rsp, 0x28 \n"
             "call LeaveHookContext \n"
             "add rsp, 0x28 \n"
             RESTORE_GP_REGISTERS()
+            
+            // Восстанавливаем результат
+            "pop rax \n"
+            "pop rdx \n"    
 
-            "xor eax, eax \n"             // return false (0)
+            "xor r11, r11 \n"             // r11 = 0 (Успех)
             "ret \n"
 
             "ExitRecursion: \n"
-            // Если рекурсия, нужно вернуть R10 на место (мы его запушили в начале)
-            // R10 лежит на стеке.
-            "pop r10 \n"
-
-            "mov eax, 1 \n"
+            "pop r10 \n"                  // Возвращаем R10 на место
+            "mov r11, 1 \n"               // r11 = 1 (Рекурсия сработала)
             "ret \n"
             ".att_syntax prefix \n"
         );

@@ -24,7 +24,7 @@ struct trampoline_stub_s
     const uint8_t call_rax[2] { 0xFF, 0xD0 };
     const uint8_t add_rsp_28[4] { 0x48, 0x83, 0xC4, 0x28 };
     const uint8_t pop_rcx[1] { 0x59 };
-    const uint8_t cmp_al_1[2] { 0x3C, 0x01 };
+    const uint8_t cmp_r11b_1[4] { 0x41, 0x80, 0xFB, 0x01 };
     const uint8_t jne[1] { 0x75 };
     int8_t jne_offset = 0;
     //original code
