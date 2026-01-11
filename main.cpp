@@ -15,7 +15,6 @@ void __attribute__((noinline)) test_stack_args(int a, int b, int c, int d)
     MessageBoxA(nullptr, buf, "Original Function", MB_OK);
 }
 
-// Hook that matches the signature
 void hk_test_stack_args(int a, int b, int c, int d, int e, int f)
 {
     char buf[128];
@@ -32,15 +31,12 @@ int main()
     );
 
     auto hook = std::make_shared<radiance::hook::impl::splicing::C_SplicingHook<radiance::memory::stl::C_StlAllocator<uint8_t>>>(allocator);
-
-    // Install hook on test_stack_args
     if (!hook->install((void*)test_stack_args,
         reinterpret_cast<void*>(hk_test_stack_args), reinterpret_cast<void*>(radiance::hook::DispatcherEntry))) {
         assert("Unable to set hook!");
         return -1;
     }
 
-    // Call with specific pattern: 11, 22, 33, 44, 55, 66
     test_stack_args(11, 22, 33, 44);
 
     return 0;
