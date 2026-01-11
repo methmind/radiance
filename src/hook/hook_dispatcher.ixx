@@ -67,7 +67,7 @@ namespace radiance::hook
     }
 
     //DispatcherEntry(C_BaseHook<void>* hook == R10);
-    export bool __attribute__ ((naked)) __fastcall DispatcherEntry() noexcept
+    export bool __attribute__((naked)) __fastcall DispatcherEntry() noexcept
     {
         asm volatile (
             ".intel_syntax noprefix \n"

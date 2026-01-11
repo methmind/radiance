@@ -8,10 +8,10 @@ import radiance.memory.stl;
 import radiance.hook.impl.splicing;
 import radiance.hook.dispatcher;
 
-void __attribute__((noinline)) test_stack_args(int a, int b, int c, int d, int e, int f)
+void __attribute__((noinline)) test_stack_args(int a, int b, int c, int d)
 {
     char buf[128];
-    __builtin_snprintf(buf, sizeof(buf), "Args: %d %d %d %d %d %d", a, b, c, d, e, f);
+    __builtin_snprintf(buf, sizeof(buf), "Args: %d %d %d %d", a, b, c, d);
     MessageBoxA(nullptr, buf, "Original Function", MB_OK);
 }
 
@@ -19,10 +19,10 @@ void __attribute__((noinline)) test_stack_args(int a, int b, int c, int d, int e
 void hk_test_stack_args(int a, int b, int c, int d, int e, int f)
 {
     char buf[128];
-    __builtin_snprintf(buf, sizeof(buf), "HOOKED Args: %d %d %d %d %d %d", a, b, c, d, e, f);
+    __builtin_snprintf(buf, sizeof(buf), "HOOKED Args: %d %d %d %d", a, b, c, d);
     MessageBoxA(nullptr, buf, "Hooked Function", MB_OK);
     
-    test_stack_args(a, b, c, d, e, f);
+    test_stack_args(a, b, c, d);
 }
 
 int main()
@@ -41,7 +41,7 @@ int main()
     }
 
     // Call with specific pattern: 11, 22, 33, 44, 55, 66
-    test_stack_args(11, 22, 33, 44, 55, 66);
+    test_stack_args(11, 22, 33, 44);
 
     return 0;
 }
