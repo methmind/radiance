@@ -1,12 +1,9 @@
 #include <windows.h>
 #include <cassert>
-#include <cstdint>
 #include <memory>
 
-import radiance.memory.allocator;
-import radiance.memory.stl;
-import radiance.hook.impl.splicing;
 import radiance.hook.dispatcher;
+import radiance;
 
 void __attribute__((noinline)) test_stack_args(int a, int b, int c, int d)
 {
@@ -26,13 +23,14 @@ void hk_test_stack_args(int a, int b, int c, int d, int e, int f)
 
 int main()
 {
-    auto allocator = std::make_shared<radiance::memory::stl::C_StlAllocator<uint8_t>>(
-        std::make_shared<radiance::memory::C_MemoryAllocator>()
+    radiance::C_Radiance radiance;
+
+    auto hook = radiance.create(
+        reinterpret_cast<void*>(test_stack_args),
+        reinterpret_cast<void*>(hk_test_stack_args)
     );
 
-    auto hook = std::make_shared<radiance::hook::impl::splicing::C_SplicingHook<radiance::memory::stl::C_StlAllocator<uint8_t>>>(allocator);
-    if (!hook->install((void*)test_stack_args,
-        reinterpret_cast<void*>(hk_test_stack_args), reinterpret_cast<void*>(radiance::hook::DispatcherEntry))) {
+    if (!hook) {
         assert("Unable to set hook!");
         return -1;
     }

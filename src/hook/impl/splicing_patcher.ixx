@@ -43,23 +43,20 @@ namespace radiance::hook::impl::splicing::patcher
 
         process::C_CpuAffinityScope scope;
         if (!scope.initialize()) {
-            assert("Unable to set process CPU affinity!");
             return false;
         }
 
         DWORD originalProtect = 0;
         if (!VirtualProtect(target, patch.size(), PAGE_EXECUTE_READWRITE, &originalProtect)) {
-            assert("Unable to change memory protection!");
             return false;
         }
 
         if (!WriteToPage(static_cast<uint8_t*>(target), patch)) {
-            assert("Unable to write patch to target!");
             return false;
         }
 
         if (!VirtualProtect(target, patch.size(), originalProtect, &originalProtect)) {
-            assert("Unable to restore memory protection!");
+            //...
         }
 
         return true;

@@ -75,12 +75,10 @@ namespace radiance::hook
             "push r10 \n"
 
             SAVE_GP_REGISTERS()
-
             // Выравниваем стек и чекаем рекурсию
             "sub rsp, 0x28 \n"            // Shadow space (32) + Align (8) = 40
             "call CheckRecursionAndEnter \n"
             "add rsp, 0x28 \n"
-
             RESTORE_GP_REGISTERS()
 
             "cmp al, 1 \n"

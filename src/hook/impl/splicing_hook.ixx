@@ -2,7 +2,6 @@
 // Created by sexey on 10.01.2026.
 //
 module;
-#include <cassert>
 #include <memory>
 #include <vector>
 #include <xmmintrin.h>
@@ -57,12 +56,10 @@ export namespace radiance::hook::impl::splicing
     bool C_SplicingHook<allocator_t>::install(void* target, void* detour, void* dispatcher) noexcept
     {
         if (!saveProlog(target, sizeof(hook_stub_s))) {
-            assert("Unable to save prolog!");
             return false;
         }
 
         if (!this->trampoline_.initialize(target, this->originalProlog_, dispatcher, this)) {
-            assert("Unable to initialize trampoline!");
             return false;
         }
 
@@ -74,7 +71,6 @@ export namespace radiance::hook::impl::splicing
         memcpy(&stub[sizeof(hook_stub_s)], static_cast<uint8_t*>(target) + sizeof(hook_stub_s), sizeof(stub) - sizeof(hook_stub_s));
 
         if (!patcher::ApplyPatch(target, { stub, sizeof(stub) })) {
-            assert("Unable to apply splicing hook patch!");
             return false;
         }
 
@@ -96,7 +92,6 @@ export namespace radiance::hook::impl::splicing
         memcpy(&stub[this->originalProlog_.size()], static_cast<uint8_t*>(this->target_) + this->originalProlog_.size(), sizeof(stub) - this->originalProlog_.size());
 
         if (!patcher::ApplyPatch(this->target_, { stub, sizeof(stub) })) {
-            assert("Unable to restore original prolog!");
             return false;
         }
 
@@ -126,12 +121,10 @@ export namespace radiance::hook::impl::splicing
     {
         const auto instrBoundary = GetInstructionsBoundary(target, size);
         if (!instrBoundary) {
-            assert("Unable to get instruction boundary!");
             return false;
         }
 
         if (instrBoundary > sizeof(__m128)) {
-            assert("Unable to save prolog, instruction boundary too big!");
             return false;
         }
 

@@ -3,7 +3,6 @@
 //
 
 module;
-#include <cassert>
 #include <memory>
 #include <vector>
 #include <span>
@@ -58,13 +57,11 @@ export namespace radiance::hook::impl::splicing::trampoline
         {
             const auto tmpRebuilt = RebuildInstructions(target, nullptr, original);
             if (!IsSuccess(tmpRebuilt)) {
-                assert("Unable to rebuild original prolog!");
                 return false;
             }
 
             this->trampoline_ = static_cast<uint8_t*>(this->allocator_->allocate(GetBytes(tmpRebuilt).size() + sizeof(trampoline_stub_s) + 1)); //+1 == ret opcode
             if (!this->trampoline_) {
-                assert("Unable to allocate RWX memory!");
                 return false;
             }
         }
@@ -72,7 +69,6 @@ export namespace radiance::hook::impl::splicing::trampoline
         const auto rebuiltPtr = this->trampoline_ + sizeof(trampoline_stub_s);
         const auto rebuiltStatus = RebuildInstructions(target, rebuiltPtr, original);
         if (!IsSuccess(rebuiltStatus)) {
-            assert("Unable to rebuild original prolog!");
             return false;
         }
 
