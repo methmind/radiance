@@ -24,8 +24,8 @@ export namespace radiance
 
         auto create(void* target, void* detour)
         {
-            auto hook = std::make_shared<hook::impl::splicing::C_SplicingHook<allocator_t>>(this->allocator_);
-            if (hook->install(target, detour, reinterpret_cast<void*>(hook::DispatcherEntry))) {
+            if (auto hook = std::make_shared<hook::impl::splicing::C_SplicingHook<allocator_t>>(this->allocator_);
+                hook->install(target, detour, reinterpret_cast<void*>(hook::DispatcherEntry))) {
                 return hook;
             }
 
