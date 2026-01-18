@@ -29,7 +29,7 @@ export namespace radiance
                 return hook;
             }
 
-            return std::shared_ptr<hook::impl::splicing::C_SplicingHook<allocator_t>>{nullptr};
+            return nullptr;
         }
 
     private:
