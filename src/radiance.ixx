@@ -22,7 +22,7 @@ export namespace radiance
 
         C_Radiance() : allocator_(std::make_shared<allocator_t>(std::make_shared<memory::C_MemoryAllocator>())) {}
 
-        auto create(void* target, void* detour)
+        std::shared_ptr<hook::impl::splicing::C_SplicingHook<allocator_t>> create(void* target, void* detour)
         {
             if (auto hook = std::make_shared<hook::impl::splicing::C_SplicingHook<allocator_t>>(this->allocator_);
                 hook->install(target, detour, reinterpret_cast<void*>(hook::DispatcherEntry))) {
