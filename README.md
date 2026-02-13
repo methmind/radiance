@@ -1,184 +1,225 @@
 # Radiance
 
-> Proof of concept: processor-affinity–based hooks for x86-64 on Windows.
+**Radiance** is a modern function hooking library for Windows x64, written in C++20 with native module support (C++ Modules).
 
-Radiance is an experimental C++20 library for implementing runtime code hooks with processor affinity control on x86-64 Windows systems. This is a proof-of-concept project designed to explore advanced techniques for dynamic function interception, CPU-bound hooking, and low-level memory manipulation.
+## 🎯 Features
 
-## Features
+- **Modern C++20** — modules, concepts, ranges, std::span
+- **Splicing hooks** — interception via function prologue modification (inline patching)
+- **Atomic patching** — safe 16-byte writes using SSE/CMPXCHG16B
+- **Recursion protection** — thread-local counter prevents infinite recursion in hooks
+- **Intelligent rebuilder** — instruction reconstruction with RIP-relative addressing support
+- **Custom allocator** — executable memory allocation with free block coalescing
+- **Stack argument support** — proper argument copying when calling detour
 
-- **Processor Affinity Control**: Run hook handlers on specific CPU cores using `C_CpuAffinityScope`
-- **Code Splicing**: Modify function entry points by inserting x86-64 assembly redirects
-- **Trampoline Generation**: Automatically generate and manage jump trampolines for hooked functions
-- **Custom Memory Management**: Efficient block-based allocator with metadata support
-- **C++20 Modules**: Modern modular architecture using C++20 module system
-- **x86-64 Assembly Integration**: Direct manipulation of machine code and CPU registers
-- - **Direct API Calls from Hooks**: No need to store original function pointers - call any API directly from hook handlers
+## 📋 Requirements
 
-## Project Status
+- **Compiler**: Clang 17+ with C++ Modules support
+- **Platform**: Windows x64
+- **CMake**: 4.1+
+- **Standard**: C++20
 
-⚠️ **Proof of Concept** - This project is in early experimental stage and should not be used in production environments.
+## 🚀 Quick Start
 
-- Initial commit: January 3, 2026
-- Active development: January 2026
-- Stability: Experimental
-- API Stability: Subject to change
+```cpp
+#include <windows.h>
+import radiance;
 
-## Architecture
+void __attribute__((noinline)) original_func(int a, int b) {
+    MessageBoxA(nullptr, "Original", "Test", MB_OK);
+}
 
-### Project Structure
+void hooked_func(int a, int b) {
+    MessageBoxA(nullptr, "Hooked!", "Test", MB_OK);
+    original_func(a, b); // Call original
+}
 
-```
-radiance/
-├── src/
-│   ├── cpu/              # CPU affinity management
-│   │   └── cpu_affinity_scope.ixx      # RAII wrapper for CPU affinity
-│   ├── hook/             # Hooking system core
-│   │   ├── hook_base.ixx               # Base hook interface
-│   │   ├── hook_dispatcher.ixx         # Hook dispatch mechanism
-│   │   └── impl/         # Implementation details
-│   │       ├── splicing_hook.ixx       # Function splicing implementation
-│   │       ├── splicing_trampoline.ixx # Trampoline code generation
-│   │       ├── splicing_patcher.ixx    # Code patching utilities
-│   │       └── splicing_rebuilder.ixx  # Instruction rebuilding
-│   └── memory/           # Memory management
-│       ├── memory_allocator.ixx        # Custom block allocator
-│       ├── memory_metadata.ixx         # Memory block metadata
-│       ├── memory_pageix.ixx           # Page management
-│       └── memory_stl_adapter.ixx      # STL allocator interface
-├── external/             # External dependencies
-├── CMakeLists.txt        # CMake build configuration
-├── main.cpp              # Demonstration program
-└── README.md             # This file
-```
-
-### Core Components
-
-#### CPU Affinity Scope (`src/cpu/cpu_affinity_scope.ixx`)
-Manages thread affinity masks using RAII patterns:
-- Sets thread execution affinity to specific CPU cores
-- Automatically restores original affinity on destruction
-- Windows API integration via `SetProcessAffinityMask`
-
-#### Hooking System (`src/hook/*`)
-Implements runtime function interception:
-- **Base Hook**: Abstract interface for different hooking strategies
-- **Hook Dispatcher**: Low-level dispatch mechanism with register save/restore
-- **Splicing**: Modifies function prologues by inserting jump instructions
-- **Trampoline**: Generates transition code for redirecting execution
-
-#### Memory Management (`src/memory/*`)
-Custom memory allocator with metadata:
-- Block-based allocation with configurable page size (64 KB default)
-- Magic cookie validation for corruption detection
-- Free block tracking and coalescence support
-- STL allocator adapter interface
-
-## Technical Details
-
-### Hooking Mechanism
-
-Radiance uses **code splicing** to intercept function calls:
-
-1. Identifies function entry point boundaries
-2. Allocates trampoline memory for the hooked function
-3. Modifies the original function prologue with a jump to the hook handler
-4. Preserves original instructions in the trampoline for chaining
-5. Uses processor affinity to execute hook handlers on specific cores
-
-### Memory Layout
-
-```
-[Original Function]
-      ↓
-  [JMP Redirect] ← Modified prologue
-      ↓
-  [Trampoline Code] ← Processor affinity scope
-      ↓
-  [Hook Handler]
-      ↓
-  [Continue to original code]
+int main() {
+    radiance::C_Radiance radiance;
+    
+    auto hook = radiance.create(
+        reinterpret_cast<void*>(original_func),
+        reinterpret_cast<void*>(hooked_func)
+    );
+    
+    if (hook) {
+        original_func(1, 2); // Will call hooked_func
+    }
+    
+    return 0;
+}
 ```
 
-### Build Requirements
+## 🏗️ Architecture
 
-- **C++ Standard**: C++20 (with module support)
-- **OS**: Windows (x86-64)
-- **Build Tool**: CMake 4.1+
-- **Compiler**: MSVC or Clang with C++20 modules support
+### Modules
 
-## Building
+```
+radiance
+├── radiance.ixx                    # Main module (C_Radiance)
+├── hook/
+│   ├── hook_base.ixx               # Base class C_BaseHook
+│   ├── hook_dispatcher.ixx         # ASM dispatcher (DispatcherEntry)
+│   └── impl/
+│       ├── splicing_hook.ixx       # Main hook class C_SplicingHook
+│       ├── splicing_trampoline.ixx # Trampoline code generation
+│       ├── splicing_rebuilder.ixx  # Instruction reconstruction
+│       └── splicing_patcher.ixx    # Atomic memory patching
+├── memory/
+│   ├── memory_allocator.ixx        # Executable memory allocator
+│   ├── memory_page.ixx             # VirtualAlloc wrapper
+│   ├── memory_metadata.ixx         # Block metadata (cookie)
+│   └── memory_stl_adapter.ixx      # STL-compatible allocator
+└── cpu/
+    └── cpu_affinity_scope.ixx      # RAII CPU affinity control
+```
 
-### Prerequisites
+### Execution Flow Diagram
+
+```
+                    ┌──────────────────────┐
+                    │  Call original_func  │
+                    └──────────┬───────────┘
+                               │
+                    ┌──────────▼───────────┐
+                    │   JMP [trampoline]   │ ← Patch at function start
+                    │   (12-byte stub)     │
+                    └──────────┬───────────┘
+                               │
+                    ┌──────────▼───────────┐
+                    │   Trampoline Stub    │
+                    │  - push rcx          │
+                    │  - mov r10, hook_ptr │ ← Pass hook pointer
+                    │  - call dispatcher   │
+                    └──────────┬───────────┘
+                               │
+                    ┌──────────▼───────────┐
+                    │   DispatcherEntry    │
+                    │  - Check recursion   │ ← thread_local counter
+                    │  - Copy stack args   │ ← 128 bytes (16 qwords)
+                    │  - Call detour       │
+                    │  - Leave context     │
+                    └──────────┬───────────┘
+                               │
+                    ┌──────────▼───────────┐
+                    │    detour_func()     │ ← Your handler
+                    │  (may call original) │
+                    └──────────────────────┘
+```
+
+## 📦 Components
+
+### C_Radiance (radiance.ixx)
+Main library facade. Manages hook creation and allocator lifetime.
+
+```cpp
+class C_Radiance {
+    std::shared_ptr<hook::impl::splicing::C_SplicingHook<allocator_t>> 
+    create(void* target, void* detour);
+};
+```
+
+### C_SplicingHook (splicing_hook.ixx)
+Implements splicing hook: interception via patching the first instructions of a function.
+
+**Installation algorithm:**
+1. Disassemble prologue (HDE64) to determine instruction boundaries
+2. Save original bytes (up to 16 bytes)
+3. Create trampoline with reconstructed prologue
+4. Atomic write of `MOV RAX, addr; JMP RAX` (12 bytes)
+
+**Stub structure:**
+```cpp
+#pragma pack(push, 1)
+struct hook_stub_s {
+    uint8_t mov_rax[2]  = { 0x48, 0xB8 };  // MOV RAX, imm64
+    uint64_t rax_ptr;                       // Trampoline address
+    uint8_t jmp_rax[2]  = { 0xFF, 0xE0 };  // JMP RAX
+}; // = 12 bytes
+#pragma pack(pop)
+```
+
+### C_SplicingTrampoline (splicing_trampoline.ixx)
+Generates trampoline code that:
+1. Saves context and passes hook pointer via R10
+2. Calls dispatcher
+3. Executes reconstructed original function prologue
+4. Jumps back to original (after patch)
+
+### RebuildInstructions (splicing_rebuilder.ixx)
+Intelligent instruction reconstruction with address correction:
+
+| Instruction Type | Handling |
+|------------------|----------|
+| RIP-relative data (MOV, LEA) | Recalculate disp32 |
+| CALL rel32 (E8) | Convert to CALL [RIP+2]; addr64 |
+| JMP rel8/rel32 (EB/E9) | Convert to JMP [RIP+0]; addr64 |
+| Jcc (conditional jumps) | Invert condition + JMP abs |
+| LOOP/JECXZ | Error if jump is external |
+
+### ApplyPatch (splicing_patcher.ixx)
+Atomic memory patching:
+
+```cpp
+// For aligned address:
+__sync_swap(reinterpret_cast<__int128*>(target), newValue);
+
+// For unaligned:
+VirtualLock(target, size);
+__asm__ volatile ("movups %1, %0" : "=m" (*target) : "x" (newValue));
+VirtualUnlock(target, size);
+```
+
+Uses `C_CpuAffinityScope` to pin to a single CPU during patching (avoiding race conditions between cores).
+
+### DispatcherEntry (hook_dispatcher.ixx)
+Written in inline ASM (Intel syntax). Functions:
+- Recursion protection via `thread_local RECURSION_DEPTH`
+- Copy 128 bytes of stack arguments
+- Save/restore GP registers
+- Call detour and return result
+
+### C_MemoryAllocator (memory_allocator.ixx)
+Executable memory allocator:
+- 64KB pages with `PAGE_EXECUTE_READWRITE`
+- First-fit search strategy
+- Coalescing of adjacent free blocks
+- Magic cookie (`0xDEADBEEF`) for double-free protection
+
+## 🔧 Building
 
 ```bash
-# Windows with Clang or GCC (MinGW) and CMake
+mkdir build && cd build
+cmake -G Ninja -DCMAKE_CXX_COMPILER=clang++ ..
+cmake --build .
 ```
 
-### Build Steps
+### Project Integration
 
-```bash
-# Clone the repository
-git clone https://github.com/methmind/radiance.git
-cd radiance
-
-# Create build directory
-mkdir build
-cd build
-
-# Configure with CMake
-cmake .. -DCMAKE_CXX_STANDARD=20
-
-# Build
-cmake --build . --config Release
+```cmake
+add_subdirectory(external/radiance)
+target_link_libraries(your_target PRIVATE radiance)
 ```
 
-## Limitations and Caveats
+## ⚠️ Limitations
 
-- ⚠️ **x86-64 Windows Only**: Limited to Windows systems with x86-64 architecture
-- ⚠️ **No Binary Compatibility**: API and ABI may change without notice
-- ⚠️ **Limited Testing**: Minimal test coverage, use with caution
-- ⚠️ **Performance Trade-offs**: Hooking adds execution overhead
-- ⚠️ **Debugging Complexity**: Difficult to debug hooked code
-- ⚠️ **Security Considerations**: Hooks can be detected/bypassed by security software
-- - ⚠️ **Maximum Prologue Bytes**: Maximum 16 bytes of original function prologue can be copied due to implementation constraints
+1. **x64 only** — 32-bit architecture is not supported
+2. **Minimum 12 bytes** — function must have prologue ≥12 bytes
+3. **No hot-patching** — no `int 3` / `nop` padding support
+4. **LOOP/JECXZ** — instructions with external jumps are not supported
+5. **Clang only** — requires Clang for inline ASM with Intel syntax
 
-## Contributing
+## 📚 Dependencies
 
-This is an experimental proof-of-concept project. Contributions, bug reports, and discussions are welcome, but please note:
+- **HDE64** — Hacker Disassembler Engine 64 by Vyacheslav Patkov
 
-- This is not production-ready software
-- The API is subject to breaking changes
-- Code review may be limited due to experimental nature
+## 📄 License
 
-## License
+See [LICENSE](LICENSE) file.
 
-MIT License - Copyright (c) 2026 
+## 🔗 References
 
-See [LICENSE](LICENSE) file for details.
+- [Intel x86/x64 Manual](https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html)
+- [HDE64 Disassembler](https://github.com/vovkos/hde)
+- [C++ Modules](https://en.cppreference.com/w/cpp/language/modules)
 
-## Disclaimer
-
-This software is provided for educational and research purposes only. Users are responsible for:
-
-- Understanding the legal implications of code hooking in their jurisdiction
-- Ensuring compatibility with antivirus and security software
-- Testing thoroughly in isolated environments
-- Following applicable software licensing agreements
-
-The author is not liable for any damage or misuse of this software.
-
-## References
-
-- x86-64 Architecture: Intel and AMD processor manuals
-- Windows API: Microsoft documentation
-- Code Hooking Techniques: Academic papers and security research
-- C++20 Modules: ISO/IEC 14882:2020 standard
-
-- MinHook: Modern library for x86-64 function hooking
-## Author
-
-**** - [methmind](https://github.com/methmind)
-
-## Acknowledgments
-
-This project explores concepts from various security research publications and reverse engineering communities.

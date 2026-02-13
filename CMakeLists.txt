@@ -27,6 +27,7 @@ target_sources(radiance PUBLIC
 )
 
 target_compile_options(radiance PRIVATE -mcx16)
+target_compile_options(radiance_test PRIVATE -mcx16)
 
 target_include_directories(radiance PUBLIC
         "."

@@ -12,13 +12,13 @@ void __attribute__((noinline)) test_stack_args(int a, int b, int c, int d)
     MessageBoxA(nullptr, buf, "Original Function", MB_OK);
 }
 
-void hk_test_stack_args(int a, int b, int c, int d, int e, int f)
+void hk_test_stack_args(int a, int b, int c, int d)
 {
     char buf[128];
     __builtin_snprintf(buf, sizeof(buf), "HOOKED Args: %d %d %d %d", a, b, c, d);
     MessageBoxA(nullptr, buf, "Hooked Function", MB_OK);
     
-    test_stack_args(a, b, c, d);
+    test_stack_args(1, 3, 3, 7);
 }
 
 int main()
