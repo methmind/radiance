@@ -52,14 +52,14 @@ void Append(std::vector<uint8_t>& buf, const void* data, size_t size)
 void EmitAbsoluteJmp(std::vector<uint8_t>& buf, uintptr_t target)
 {
     jmp_abs_s jmp;
-    jmp.address = static_cast<uint64_t>(target);
+    jmp.address = target;
     Append(buf, &jmp, sizeof(jmp));
 }
 
 void EmitAbsoluteCall(std::vector<uint8_t>& buf, uintptr_t target)
 {
     call_abs_s call;
-    call.address = static_cast<uint64_t>(target);
+    call.address = target;
     Append(buf, &call, sizeof(call));
 }
 

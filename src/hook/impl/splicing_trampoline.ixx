@@ -24,10 +24,9 @@ struct trampoline_stub_s
     const uint8_t add_rsp_28[4] { 0x48, 0x83, 0xC4, 0x28 };
     const uint8_t pop_rcx[1] { 0x59 };
     const uint8_t cmp_r11b_1[4] { 0x41, 0x80, 0xFB, 0x01 };
-    const uint8_t jne[1] { 0x75 };
-    int8_t jne_offset = 0;
+    const uint8_t je[2] { 0x74, 0x1 };
+    const uint8_t ret[1] { 0xC3 };
     //original code
-    //ret == 0xC3
 };
 #pragma pack(pop)
 
@@ -60,7 +59,7 @@ export namespace radiance::hook::impl::splicing::trampoline
                 return false;
             }
 
-            this->trampoline_ = static_cast<uint8_t*>(this->allocator_->allocate(GetBytes(tmpRebuilt).size() + sizeof(trampoline_stub_s) + 1)); //+1 == ret opcode
+            this->trampoline_ = static_cast<uint8_t*>(this->allocator_->allocate(GetBytes(tmpRebuilt).size() + sizeof(trampoline_stub_s)));
             if (!this->trampoline_) {
                 return false;
             }
@@ -77,11 +76,9 @@ export namespace radiance::hook::impl::splicing::trampoline
         trampoline_stub_s stub;
         stub.r10_ptr = reinterpret_cast<uint64_t>(args);
         stub.rax_ptr = reinterpret_cast<uint64_t>(detour);
-        stub.jne_offset = static_cast<int8_t>(rebuilt.size()); //+1 == ret opcode
 
         memcpy(this->trampoline_, &stub, sizeof(trampoline_stub_s));
         memcpy(rebuiltPtr, rebuilt.data(), rebuilt.size());
-        this->trampoline_[sizeof(trampoline_stub_s) + rebuilt.size()] = 0xC3; //ret opcode
 
         return true;
     }
